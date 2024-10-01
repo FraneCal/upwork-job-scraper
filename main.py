@@ -77,7 +77,7 @@ class UpWorkJobScraper:
             self.append_to_csv(new_jobs)
 
     def filter_new_jobs(self):
-        '''Load existing jobs from CSV and filter out those already recorded.'''
+        '''Load existing jobs from CSV and filter out those already recorded, ignoring dynamic "Posted" column.'''
         csv_file = 'job_listings.csv'
 
         try:
@@ -92,17 +92,19 @@ class UpWorkJobScraper:
 
         # Normalize both datasets by trimming whitespaces and converting text to lowercase
         new_jobs_df['Job title'] = new_jobs_df['Job title'].str.strip().str.lower()
-        new_jobs_df['Posted'] = new_jobs_df['Posted'].str.strip().str.lower()
         new_jobs_df['Payment info'] = new_jobs_df['Payment info'].str.strip().str.lower()
         new_jobs_df['Link'] = new_jobs_df['Link'].str.strip()
 
         existing_jobs['Job title'] = existing_jobs['Job title'].str.strip().str.lower()
-        existing_jobs['Posted'] = existing_jobs['Posted'].str.strip().str.lower()
         existing_jobs['Payment info'] = existing_jobs['Payment info'].str.strip().str.lower()
         existing_jobs['Link'] = existing_jobs['Link'].str.strip()
 
-        # Find new jobs by checking if they are not already in the CSV
-        merged_jobs = pd.merge(new_jobs_df, existing_jobs, on=['Job title', 'Posted', 'Payment info', 'Link'], how='left', indicator=True)
+        # Ignore 'Posted' column when identifying duplicates
+        new_jobs_df.drop(columns=['Posted'], inplace=True)
+        existing_jobs.drop(columns=['Posted'], inplace=True)
+
+        # Find new jobs by checking if they are not already in the CSV (based on 'Job title', 'Payment info', 'Link')
+        merged_jobs = pd.merge(new_jobs_df, existing_jobs, on=['Job title', 'Payment info', 'Link'], how='left', indicator=True)
         new_jobs = merged_jobs[merged_jobs['_merge'] == 'left_only'].drop(columns=['_merge'])
 
         return new_jobs
@@ -114,11 +116,11 @@ class UpWorkJobScraper:
         # Append new jobs to the CSV file
         new_jobs.to_csv(csv_file, mode='a', header=not os.path.exists(csv_file), index=False)
 
-        # After appending, remove any duplicates in the CSV
+        # After appending, remove any duplicates in the CSV, ignoring 'Posted' column
         all_jobs = pd.read_csv(csv_file)
         
-        # Drop duplicates
-        all_jobs.drop_duplicates(subset=['Job title', 'Posted', 'Payment info', 'Link'], keep='first', inplace=True)
+        # Drop duplicates based on 'Job title', 'Payment info', and 'Link'
+        all_jobs.drop_duplicates(subset=['Job title', 'Payment info', 'Link'], keep='first', inplace=True)
         
         # Save the deduplicated CSV back
         all_jobs.to_csv(csv_file, index=False)
