@@ -1,4 +1,4 @@
-name: Run Job Scraper
+name: Run UpWork Job Scraper
 
 on:
   schedule:
