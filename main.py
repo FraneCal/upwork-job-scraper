@@ -154,7 +154,6 @@ class UpWorkJobScraper:
         for index, job in new_jobs.iterrows():
             body += f"""
         Job title: {job['Job title']}
-        Posted: {job['Posted']}
         Payment info: {job['Payment info']}
         Link: {job['Link']}
             """
