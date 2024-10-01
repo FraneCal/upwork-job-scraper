@@ -74,12 +74,14 @@ class UpWorkJobScraper:
             self.posted_at = article.find('small', class_='text-light mb-1')
             self.payment_info = article.find('ul', class_='job-tile-info-list text-base-sm mb-4')
             # self.description = article.find('div', class_='air3-line-clamp-wrapper clamp mb-3')
+            self.link = article.find('a', class_='up-n-link')
 
             self.data.append({
                 'Job title': self.job_titles.getText() if self.job_titles else 'Data not found',
                 'Posted': self.posted_at.getText() if self.posted_at else 'Data not found',
                 'Payment info': self.payment_info.getText() if self.payment_info else 'Data not found',
                 # 'Description': self.description.getText() if self.description else 'Data not found',
+                'Link': self.link.get('href') if self.link else 'Data not found'
             })
 
         # Check for new job listings and send an email if any new jobs are found
@@ -105,7 +107,7 @@ class UpWorkJobScraper:
             existing_jobs = pd.read_csv(csv_file)
         except FileNotFoundError:
             # If file doesn't exist, assume there are no previous jobs
-            existing_jobs = pd.DataFrame(columns=['Job title', 'Posted', 'Payment info'])
+            existing_jobs = pd.DataFrame(columns=['Job title', 'Posted', 'Payment info', 'Link'])
 
         # Convert the newly scraped data to a DataFrame
         new_jobs_df = pd.DataFrame(self.data)
@@ -168,6 +170,7 @@ class UpWorkJobScraper:
         Job title: {job['Job title']}
         Posted: {job['Posted']}
         Payment info: {job['Payment info']}
+        Link: {job['Link']}
             """
 
         body += "\nBest regards,\nUpWorkJobScraper"
