@@ -1,0 +1,5 @@
+beautifulsoup4==4.12.3
+pandas==2.2.2
+python-dotenv==1.0.1
+selenium==4.24.0
+fake-useragent==1.5.1
