@@ -81,7 +81,7 @@ class UpWorkJobScraper:
                 'Posted': self.posted_at.getText() if self.posted_at else 'Data not found',
                 'Payment info': self.payment_info.getText() if self.payment_info else 'Data not found',
                 # 'Description': self.description.getText() if self.description else 'Data not found',
-                'Link': self.link.get('href') if self.link else 'Data not found'
+                'Link': f"https://www.upwork.com{self.link.get('href')}" if self.link else 'Data not found'
             })
 
         # Check for new job listings and send an email if any new jobs are found
