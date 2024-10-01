@@ -20,36 +20,22 @@ class UpWorkJobScraper:
         self.driver = self.setup_webdriver()
 
     def setup_webdriver(self):
-        '''Set up the Chrome WebDriver with necessary options for headless browsing and random user-agent.
-        
-        This function configures the Chrome WebDriver with options like headless mode, GPU support, and
-        a dynamic user-agent to avoid detection from websites. It then returns the initialized WebDriver object.
-        '''
+        '''Set up the Chrome WebDriver with necessary options for headless browsing and random user-agent.'''
         ua = UserAgent()
         user_agent = ua.random
 
         options = Options()
         options.add_argument("--headless")
-        options.add_argument("--disable-gpu") 
+        options.add_argument("--disable-gpu")  # Enable GPU support in headless mode
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
-        options.add_argument("window-size=1920,1080")
-        options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.121 Safari/537.36")
-        #options.add_argument(f'--user-agent={user_agent}')
+        options.add_argument(f'--user-agent={user_agent}')
 
         driver = webdriver.Chrome(options=options)
         return driver
     
     def scraping(self, URL):
-        '''Scrape job listings from Upwork based on the provided URL.
-        
-        This method fetches the webpage, waits for job listings to load, and then parses the page content 
-        using BeautifulSoup. It extracts job details like title, posting time, payment info, and description 
-        from each job listing and stores them in a list.
-        
-        Arguments:
-        URL -- The Upwork job search URL to scrape job listings from.
-        '''
+        '''Scrape job listings from Upwork based on the provided URL.'''
         self.driver.get(URL)
         self.data = []
 
@@ -75,14 +61,12 @@ class UpWorkJobScraper:
             self.job_titles = article.find('h2', class_='h5 mb-0 mr-2 job-tile-title')
             self.posted_at = article.find('small', class_='text-light mb-1')
             self.payment_info = article.find('ul', class_='job-tile-info-list text-base-sm mb-4')
-            # self.description = article.find('div', class_='air3-line-clamp-wrapper clamp mb-3')
             self.link = article.find('a', class_='up-n-link')
 
             self.data.append({
                 'Job title': self.job_titles.getText() if self.job_titles else 'Data not found',
                 'Posted': self.posted_at.getText() if self.posted_at else 'Data not found',
                 'Payment info': self.payment_info.getText() if self.payment_info else 'Data not found',
-                # 'Description': self.description.getText() if self.description else 'Data not found',
                 'Link': f"https://www.upwork.com{self.link.get('href')}" if self.link else 'Data not found'
             })
 
@@ -93,15 +77,7 @@ class UpWorkJobScraper:
             self.append_to_csv(new_jobs)
 
     def filter_new_jobs(self):
-        '''Load existing jobs from CSV and filter out those already recorded.
-        
-        This function reads the previously scraped job listings from a CSV file, compares them with the
-        newly scraped data, and filters out the jobs that have already been recorded. It returns the 
-        list of new job postings.
-        
-        Returns:
-        A DataFrame containing new job listings that are not already in the CSV file.
-        '''
+        '''Load existing jobs from CSV and filter out those already recorded.'''
         csv_file = 'job_listings.csv'
 
         try:
@@ -114,37 +90,43 @@ class UpWorkJobScraper:
         # Convert the newly scraped data to a DataFrame
         new_jobs_df = pd.DataFrame(self.data)
 
+        # Normalize both datasets by trimming whitespaces and converting text to lowercase
+        new_jobs_df['Job title'] = new_jobs_df['Job title'].str.strip().str.lower()
+        new_jobs_df['Posted'] = new_jobs_df['Posted'].str.strip().str.lower()
+        new_jobs_df['Payment info'] = new_jobs_df['Payment info'].str.strip().str.lower()
+        new_jobs_df['Link'] = new_jobs_df['Link'].str.strip()
+
+        existing_jobs['Job title'] = existing_jobs['Job title'].str.strip().str.lower()
+        existing_jobs['Posted'] = existing_jobs['Posted'].str.strip().str.lower()
+        existing_jobs['Payment info'] = existing_jobs['Payment info'].str.strip().str.lower()
+        existing_jobs['Link'] = existing_jobs['Link'].str.strip()
+
         # Find new jobs by checking if they are not already in the CSV
-        merged_jobs = pd.merge(new_jobs_df, existing_jobs, how='left', indicator=True)
+        merged_jobs = pd.merge(new_jobs_df, existing_jobs, on=['Job title', 'Posted', 'Payment info', 'Link'], how='left', indicator=True)
         new_jobs = merged_jobs[merged_jobs['_merge'] == 'left_only'].drop(columns=['_merge'])
 
         return new_jobs
 
     def append_to_csv(self, new_jobs):
-        '''Append new job listings to the CSV file.
-        
-        This method appends the filtered new job listings to the existing CSV file. If the CSV file doesn't
-        exist, it creates a new one.
-        
-        Arguments:
-        new_jobs -- A DataFrame containing new job listings to be added to the CSV file.
-        '''
+        '''Append new job listings to the CSV file and ensure no duplicates.'''
         csv_file = 'job_listings.csv'
 
         # Append new jobs to the CSV file
         new_jobs.to_csv(csv_file, mode='a', header=not os.path.exists(csv_file), index=False)
 
-        print(f"New jobs successfully appended to {csv_file}")
+        # After appending, remove any duplicates in the CSV
+        all_jobs = pd.read_csv(csv_file)
+        
+        # Drop duplicates
+        all_jobs.drop_duplicates(subset=['Job title', 'Posted', 'Payment info', 'Link'], keep='first', inplace=True)
+        
+        # Save the deduplicated CSV back
+        all_jobs.to_csv(csv_file, index=False)
+
+        print(f"New jobs successfully appended and duplicates removed from {csv_file}")
 
     def send_email(self, new_jobs):
-        '''Send an email containing the new job listings.
-        
-        This method uses the SMTP protocol to send an email with the details of newly scraped job listings.
-        It loads email credentials from environment variables and formats the email with the job data.
-        
-        Arguments:
-        new_jobs -- A DataFrame containing new job listings that will be included in the email.
-        '''
+        '''Send an email containing the new job listings.'''
         load_dotenv()
 
         # Email setup
