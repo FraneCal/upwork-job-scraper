@@ -3,7 +3,7 @@ name: Run UpWork Job Scraper
 on:
   schedule:
     # Runs every 10 minutes between 7AM and 8PM GMT+2
-    # - cron: '*/10 5-18 * * *'
+    - cron: '*/10 5-18 * * *'
 
 jobs:
   run-scraper:
