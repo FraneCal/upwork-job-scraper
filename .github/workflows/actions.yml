@@ -3,7 +3,7 @@ name: Run UpWork Job Scraper
 on:
   schedule:
     # Runs every 10 minutes between 7AM and 8PM GMT+2
-    # - cron: '*/10 5-18 * * *'
+    - cron: '*/10 5-18 * * *'
 
 jobs:
   run-scraper:
@@ -34,3 +34,14 @@ jobs:
         EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
       run: |
         python main.py
+
+    # Step 5: Commit and push updates
+    - name: Commit and push changes
+      uses: EndBug/add-and-commit@v9
+      with:
+        author_name: 'github-actions'
+        author_email: 'github-actions@github.com'
+        message: 'Updated new jobs'
+        add: 'job_listings.csv'
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
