@@ -100,8 +100,8 @@ class UpWorkJobScraper:
         existing_jobs['Link'] = existing_jobs['Link'].str.strip()
 
         # Ignore 'Posted' column when identifying duplicates
-        #new_jobs_df.drop(columns=['Posted'], inplace=True)
-        #existing_jobs.drop(columns=['Posted'], inplace=True)
+        new_jobs_df.drop(columns=['Posted'], inplace=True)
+        existing_jobs.drop(columns=['Posted'], inplace=True)
 
         # Find new jobs by checking if they are not already in the CSV (based on 'Job title', 'Payment info', 'Link')
         merged_jobs = pd.merge(new_jobs_df, existing_jobs, on=['Job title', 'Payment info', 'Link'], how='left', indicator=True)
